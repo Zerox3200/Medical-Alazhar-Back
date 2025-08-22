@@ -40,6 +40,8 @@ const assessmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Final judgement
+
 const Assessment =
   mongoose.Model.Assessment || mongoose.model("assessment", assessmentSchema);
 

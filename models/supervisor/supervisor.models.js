@@ -62,10 +62,6 @@ const supervisorSchema = new Schema(
       enum: ["active", "suspended", "deactivated"],
       default: "active",
     },
-    createdAt: {
-      type: Date,
-      default: Date.now(),
-    },
     hospital: {
       type: String,
       enum: ["al_hussein", "sayed_galal"],

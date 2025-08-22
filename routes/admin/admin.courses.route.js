@@ -15,6 +15,7 @@ import {
 } from "../../controllers/admin/admin.courses.controller.js";
 import { videoValidation } from "../../validation/course/video.validation.js";
 import { quizValidation } from "../../validation/course/quiz.validation.js";
+import multerConfig from "../../services/multerConfig.js";
 
 const coursesRouter = express.Router({ mergeParams: true });
 
@@ -39,6 +40,7 @@ coursesRouter.post(
   isAuthenticated,
   isAdmin,
   validate(courseValidation),
+  multerConfig.single("course-banner"),
   createCourse
 );
 

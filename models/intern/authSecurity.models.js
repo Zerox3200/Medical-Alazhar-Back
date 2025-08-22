@@ -31,10 +31,6 @@ const authAndSecurity = {
     enum: ["active", "suspended", "deactivated"],
     default: "active",
   },
-  createdAt: {
-    type: Date,
-    default: Date.now(),
-  },
 };
 
 export default authAndSecurity;

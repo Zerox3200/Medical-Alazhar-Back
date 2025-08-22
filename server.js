@@ -19,6 +19,8 @@ import adminRoutes from "./routes/admin/admin.route.js";
 import supervisorRoutes from "./routes/supervisor/supervisor.route.js";
 // Interns
 import internRoutes from "./routes/intern/index.route.js";
+// Course
+import courseRoutes from "./routes/course/course.route.js";
 // Auth route for login
 import authRoutes from "./routes/auth.route.js";
 
@@ -70,6 +72,7 @@ app.get("/", (req, res, next) => {
 // End points
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/course", courseRoutes);
 app.use("/api/v1/intern", internRoutes);
 app.use("/api/v1/supervisor", supervisorRoutes);
 

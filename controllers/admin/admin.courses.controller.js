@@ -8,14 +8,22 @@ import _ from "lodash";
 
 // Create new course
 export const createCourse = asyncWrapper(async (req, res, next) => {
-  const { title, description, mentor, courseImage, tags } = req.body;
+  const { published = false, ...courseData } = req.body;
+
+  const courseBanner = req.file?.path.replace(/\\/g, "/");
+
+  if (!courseBanner) {
+    return res.status(400).json({
+      status: httpStatusText.FAIL,
+      code: 400,
+      message: "Course banner is required",
+    });
+  }
 
   const newCourse = new Course({
-    title,
-    description,
-    mentor,
-    courseImage,
-    tags,
+    published,
+    courseBanner,
+    ...courseData,
   });
 
   if (!newCourse)
@@ -23,6 +31,7 @@ export const createCourse = asyncWrapper(async (req, res, next) => {
       status: httpStatusText.ERROR,
       message: "Error creating new course",
     });
+
   await newCourse.save();
   return res.status(201).json({
     status: httpStatusText.SUCCESS,
