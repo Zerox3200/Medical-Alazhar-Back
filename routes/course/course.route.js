@@ -10,6 +10,7 @@ import {
 import checkQuizAccess from "../../middlewares/checkQuizAccess.js";
 import isAuthenticated from "../../middlewares/isAuthenticated.js";
 
+
 const courseRoutes = express.Router({ mergeParams: true });
 
 // GET all courses

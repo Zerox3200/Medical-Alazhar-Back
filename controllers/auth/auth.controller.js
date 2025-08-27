@@ -42,9 +42,8 @@ const handleUserLogin = async (user, password, Model, res) => {
     return res.status(422).json({
       status: httpStatusText.FAIL,
       code: 422,
-      message: `Incorrect Credentials, you only have ${
-        3 - updatedUser.loginAttempts
-      } attempts left`,
+      message: `Incorrect Credentials, you only have ${3 - updatedUser.loginAttempts
+        } attempts left`,
     });
   }
   // Set Login Time
@@ -169,4 +168,17 @@ export const changePassword = asyncWrapper(async (req, res, next) => {
       message: "Password changed",
     });
   }
+});
+
+
+// Get User Data by token
+export const getUserData = asyncWrapper(async (req, res, next) => {
+
+  return res.status(200).json({
+    status: httpStatusText.SUCCESS,
+    code: 200,
+    message: "User data fetched",
+    data: req.user,
+  });
+
 });

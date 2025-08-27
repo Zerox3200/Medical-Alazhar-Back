@@ -23,6 +23,7 @@ import internRoutes from "./routes/intern/index.route.js";
 import courseRoutes from "./routes/course/course.route.js";
 // Auth route for login
 import authRoutes from "./routes/auth.route.js";
+import coursesForAdminRoutes from "./routes/admin/admin.courses.route.js";
 
 const app = express();
 
@@ -75,6 +76,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/course", courseRoutes);
 app.use("/api/v1/intern", internRoutes);
 app.use("/api/v1/supervisor", supervisorRoutes);
+app.use("/api/v1/admin/courses", coursesForAdminRoutes);
 
 // Unmatched Route
 app.all("*", (req, res, next) => {

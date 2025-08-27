@@ -9,6 +9,7 @@ import isAdmin from "../../middlewares/isAdmin.js";
 import {
   adminData,
   approveUserAccount,
+  generateUploadSignatureForAdmin,
   getNotApprovedUsers,
   modifyAccountLock,
   uploadAdminProfileImage,
@@ -129,5 +130,9 @@ router.patch(
 /********************************COURSES********************************/
 router.use("/courses", coursesRouter);
 router.use("/rounds", roundsRouter);
+
+
+// get Signature for upload image 
+router.get("/upload/signature", isAuthenticated, isAdmin, generateUploadSignatureForAdmin);
 
 export default router;

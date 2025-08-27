@@ -1,9 +1,9 @@
 import { validationResult } from "express-validator";
 import httpStatusText from "../utils/httpStatusText.js";
 
-const validate = (validations) => {
+const validate = (validations, isBody = false) => {
   return async (req, res, next) => {
-    await Promise.all(validations.map((validation) => validation.run(req)));
+    await Promise.all(validations.map((validation) => validation.run(isBody ? req.body : req)));
     const errors = validationResult(req);
     if (errors.isEmpty()) {
       return next();

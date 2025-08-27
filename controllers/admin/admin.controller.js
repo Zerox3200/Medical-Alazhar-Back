@@ -5,6 +5,7 @@ import Admin from "../../models/admin/admin.model.js";
 import Supervisor from "../../models/supervisor/supervisor.models.js";
 import Intern from "../../models/intern/Intern.models.js";
 import { imageUploader } from "../uploads/uploader.controller.js";
+import { generateUploadSignature } from "../../services/cloudnairyUpload.js";
 
 // Get not approved accounts
 export const getNotApprovedUsers = asyncWrapper(async (req, res, next) => {
@@ -153,4 +154,17 @@ export const uploadAdminProfileImage = asyncWrapper(async (req, res, next) => {
   checkIdValidity(adminId, res);
 
   await imageUploader(req, res, next, Admin, adminId);
+});
+
+
+// get Signature for upload image 
+export const generateUploadSignatureForAdmin = asyncWrapper(async (req, res, next) => {
+  const signature = generateUploadSignature({
+    folder: "vedio/courses",
+  });
+  res.json({
+    success: true,
+    signature,
+    message: "Signature generated successfully",
+  })
 });

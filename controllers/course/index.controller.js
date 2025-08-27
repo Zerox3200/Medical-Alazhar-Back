@@ -6,9 +6,11 @@ import Course from "../../models/course/course.models.js";
 import Video from "../../models/course/video.models.js";
 import Quiz from "../../models/course/quiz.models.js";
 import _ from "lodash";
+import { ErrorCatch } from "../../utils/appError.js";
+
 
 // Get courses
-export const getAllCourses = asyncWrapper(async (req, res, next) => {
+export const getAllCourses = ErrorCatch(async (req, res, next) => {
   const courses = await Course.find()
     .populate("videos", "title url duration quizId")
     .populate("quizzes", "questions videoId")
@@ -31,7 +33,7 @@ export const getAllCourses = asyncWrapper(async (req, res, next) => {
 });
 
 // Get course data
-export const getCourse = asyncWrapper(async (req, res, next) => {
+export const getCourse = ErrorCatch(async (req, res, next) => {
   const { courseId } = req.params;
 
   checkIdValidity(courseId, res);
@@ -57,7 +59,7 @@ export const getCourse = asyncWrapper(async (req, res, next) => {
 });
 
 // Get quiz
-export const getQuiz = asyncWrapper(async (req, res, next) => {
+export const getQuiz = ErrorCatch(async (req, res, next) => {
   const { courseId } = req.params;
   const { quizId } = req.query;
   checkIdValidity(courseId, res, quizId);
@@ -80,7 +82,7 @@ export const getQuiz = asyncWrapper(async (req, res, next) => {
 });
 
 // Get video
-export const getVideo = asyncWrapper(async (req, res, next) => {
+export const getVideo = ErrorCatch(async (req, res, next) => {
   const { courseId } = req.params;
   const { videoId } = req.query;
   checkIdValidity(courseId, res, videoId);
@@ -103,7 +105,7 @@ export const getVideo = asyncWrapper(async (req, res, next) => {
 });
 
 // Submit video
-export const submitVideo = asyncWrapper(async (req, res) => {
+export const submitVideo = ErrorCatch(async (req, res) => {
   const { courseId } = req.params;
   const { videoId } = req.query;
   const { _id: internId } = req.user;
@@ -235,7 +237,7 @@ export const submitVideo = asyncWrapper(async (req, res) => {
 });
 
 // Submit quiz
-export const submitQuiz = asyncWrapper(async (req, res, next) => {
+export const submitQuiz = ErrorCatch(async (req, res, next) => {
   const { courseId } = req.params;
   const { quizId } = req.query;
   const { answers } = req.body;
@@ -300,29 +302,29 @@ export const submitQuiz = asyncWrapper(async (req, res, next) => {
 
     const update = failedQuiz
       ? {
-          $inc: {
-            "coursesProgress.$[course].quizzes.failed.$[quiz].attempts": 1,
-          },
-          $set: {
-            "coursesProgress.$[course].quizzes.failed.$[quiz].lastAttempt": now,
-            ...(failedQuiz.attempts >= 1 && {
-              "coursesProgress.$[course].quizzes.failed.$[quiz].isLocked": true,
-              "coursesProgress.$[course].quizzes.failed.$[quiz].lockedUntil":
-                unlockTime,
-            }),
-          },
-        }
+        $inc: {
+          "coursesProgress.$[course].quizzes.failed.$[quiz].attempts": 1,
+        },
+        $set: {
+          "coursesProgress.$[course].quizzes.failed.$[quiz].lastAttempt": now,
+          ...(failedQuiz.attempts >= 1 && {
+            "coursesProgress.$[course].quizzes.failed.$[quiz].isLocked": true,
+            "coursesProgress.$[course].quizzes.failed.$[quiz].lockedUntil":
+              unlockTime,
+          }),
+        },
+      }
       : {
-          $push: {
-            "coursesProgress.$[course].quizzes.failed": {
-              quizId,
-              attempts: 1,
-              lastAttempt: now,
-              isLocked: false,
-              lockedUntil: null,
-            },
+        $push: {
+          "coursesProgress.$[course].quizzes.failed": {
+            quizId,
+            attempts: 1,
+            lastAttempt: now,
+            isLocked: false,
+            lockedUntil: null,
           },
-        };
+        },
+      };
 
     await Intern.findOneAndUpdate(
       { _id: internId, "coursesProgress.courseId": courseId },
@@ -344,14 +346,13 @@ export const submitQuiz = asyncWrapper(async (req, res, next) => {
       attempts: (failedQuiz?.attempts || 0) + 1,
       ...(attemptsLeft <= 0
         ? {
-            message: `Quiz locked until ${unlockTime.toLocaleString()}`,
-            unlockTime,
-          }
+          message: `Quiz locked until ${unlockTime.toLocaleString()}`,
+          unlockTime,
+        }
         : {
-            message: `${attemptsLeft} attempt${
-              attemptsLeft !== 1 ? "s" : ""
+          message: `${attemptsLeft} attempt${attemptsLeft !== 1 ? "s" : ""
             } left`,
-          }),
+        }),
     });
   }
 
@@ -374,25 +375,25 @@ export const submitQuiz = asyncWrapper(async (req, res, next) => {
 
   const updateOperation = existingPass
     ? {
-        $set: {
-          "coursesProgress.$[course].quizzes.passed.$[quiz].score":
-            correctCount,
-          "coursesProgress.$[course].quizzes.passed.$[quiz].completedAt":
-            new Date(),
-          "coursesProgress.$[course].quizzes.passed.$[quiz].isCompleted": true,
-        },
-      }
+      $set: {
+        "coursesProgress.$[course].quizzes.passed.$[quiz].score":
+          correctCount,
+        "coursesProgress.$[course].quizzes.passed.$[quiz].completedAt":
+          new Date(),
+        "coursesProgress.$[course].quizzes.passed.$[quiz].isCompleted": true,
+      },
+    }
     : {
-        $push: {
-          "coursesProgress.$[course].quizzes.passed": {
-            quizId,
-            isCompleted: true,
-            score: correctCount,
-            completedAt: new Date(),
-            attempts: (failedQuiz?.attempts || 0) + 1,
-          },
+      $push: {
+        "coursesProgress.$[course].quizzes.passed": {
+          quizId,
+          isCompleted: true,
+          score: correctCount,
+          completedAt: new Date(),
+          attempts: (failedQuiz?.attempts || 0) + 1,
         },
-      };
+      },
+    };
 
   // Handle quiz pass
 

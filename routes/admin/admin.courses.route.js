@@ -4,73 +4,125 @@ import courseValidation from "../../validation/course/course.validation.js";
 import isAuthenticated from "../../middlewares/isAuthenticated.js";
 import validate from "../../validation/validate.js";
 import {
-  addQuizQuestion,
   addQuizzesToCourse,
   addVideosToCourse,
   createCourse,
+  deleteCourse,
+  deleteQuiz,
+  deleteVideoFromCourse,
   getAllCourses,
+  getAvailableVideos,
   getCourseData,
   getQuiz,
+  getQuizById,
   getVideo,
+  updateCourse,
+  updateCourseStatus,
+  updateQuiz,
+  updateVideo,
 } from "../../controllers/admin/admin.courses.controller.js";
 import { videoValidation } from "../../validation/course/video.validation.js";
 import { quizValidation } from "../../validation/course/quiz.validation.js";
 import multerConfig from "../../services/multerConfig.js";
+import { handleUploadError, handleUploadSuccess, uploadToFolderFlexible, uploadVideoToFolderFlexible } from "../../services/cloudnairyUpload.js";
+import checkAdminAndCleanup from "../../middlewares/checkAdminAndCleanup.js";
+import checkAdminAndCleanupVideo from "../../middlewares/checkAdminAndCleanupVideo.js";
 
-const coursesRouter = express.Router({ mergeParams: true });
+const coursesForAdminRoutes = express.Router({ mergeParams: true });
 
 /****************************GET***************************/
 
 // GET all courses
-coursesRouter.get("/", isAuthenticated, isAdmin, getAllCourses);
+coursesForAdminRoutes.get("/", isAuthenticated, isAdmin, getAllCourses);
 
 // GET course data
-coursesRouter.get("/:courseId", isAuthenticated, isAdmin, getCourseData);
+coursesForAdminRoutes.get("/:courseId", isAuthenticated, isAdmin, getCourseData);
 
 // GET quiz NOTE: quizId is a query parameter
-coursesRouter.get("/:courseId/quizzes", isAuthenticated, isAdmin, getQuiz);
+coursesForAdminRoutes.get("/:courseId/quizzes", isAuthenticated, isAdmin, getQuiz);
 
 // GET video NOTE: videoId is a query parameter
-coursesRouter.get("/:courseId/videos", isAuthenticated, isAdmin, getVideo);
+coursesForAdminRoutes.get("/:courseId/videos", isAuthenticated, isAdmin, getVideo);
 
 /****************************POST***************************/
 // Create new course
-coursesRouter.post(
+coursesForAdminRoutes.post(
   "/create",
+  uploadToFolderFlexible("courseImage"),
+  handleUploadError,
+  handleUploadSuccess,
   isAuthenticated,
-  isAdmin,
-  validate(courseValidation),
-  multerConfig.single("course-banner"),
+  checkAdminAndCleanup,
   createCourse
 );
 
-// Add videos to course
-coursesRouter.post(
-  "/:courseId/videos/add",
+// Delete course
+coursesForAdminRoutes.delete("/:courseId", isAuthenticated, isAdmin, deleteCourse);
+
+// update course 
+coursesForAdminRoutes.patch("/:courseId",
+  uploadToFolderFlexible("courseImage"),
+  handleUploadError,
+  handleUploadSuccess,
   isAuthenticated,
-  isAdmin,
-  validate(videoValidation),
+  checkAdminAndCleanup,
+  updateCourse
+);
+
+// update course status
+coursesForAdminRoutes.patch("/:courseId/status", isAuthenticated, isAdmin, updateCourseStatus);
+
+// Add videos to course
+coursesForAdminRoutes.post(
+  "/:courseId/videos/add",
+  uploadVideoToFolderFlexible("courseVideos"),
+  handleUploadError,
+  handleUploadSuccess,
+  isAuthenticated,
+  checkAdminAndCleanupVideo,
   addVideosToCourse
 );
 
+// Delete video
+coursesForAdminRoutes.delete("/delete-video/:videoId", isAuthenticated, isAdmin, deleteVideoFromCourse);
+
+// Update video
+coursesForAdminRoutes.patch("/update-video/:videoId",
+  uploadVideoToFolderFlexible("courseVideos"),
+  handleUploadError,
+  handleUploadSuccess,
+  isAuthenticated,
+  checkAdminAndCleanupVideo,
+  updateVideo
+);
+
+// Call aviliable videos
+coursesForAdminRoutes.get("/videos/available/:courseId", isAuthenticated, isAdmin, getAvailableVideos);
+
 // Add quizzes to course
-coursesRouter.post(
-  "/:courseId/quizzes/add",
+coursesForAdminRoutes.post(
+  "/quizzes/add",
   isAuthenticated,
   isAdmin,
-  validate(quizValidation),
+  validate(quizValidation, true),
   addQuizzesToCourse
 );
 
-/****************************PATCH***************************/
+// Delete quiz
+coursesForAdminRoutes.delete("/videos/:videoId/quizzes/:quizId", isAuthenticated, isAdmin, deleteQuiz);
 
-// Add question
-coursesRouter.patch(
-  "/quizzes/:quizId/add-questions",
+// Get quiz by id ( for admin only )
+coursesForAdminRoutes.get("/quizzes/:quizId", isAuthenticated, isAdmin, getQuizById);
+
+// Update quiz
+coursesForAdminRoutes.patch(
+  "/quizzes/:quizId/update",
   isAuthenticated,
   isAdmin,
-  validate(quizValidation),
-  addQuizQuestion
+  validate(quizValidation, true),
+  updateQuiz
 );
 
-export default coursesRouter;
+
+
+export default coursesForAdminRoutes;

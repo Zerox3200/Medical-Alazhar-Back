@@ -3,6 +3,7 @@ import {
   login,
   logout,
   changePassword,
+  getUserData,
 } from "../controllers/auth/auth.controller.js";
 import {
   changePasswordValidation,
@@ -21,6 +22,8 @@ router.post("/login", validate(loginValidation), login);
 router.post("/logout", logout);
 
 router.post("/refresh", validateRefreshToken, refreshToken);
+
+router.get("/me", isAuthenticated, getUserData);
 
 router.patch(
   "/:userId/password/change",

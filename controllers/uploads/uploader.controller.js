@@ -14,7 +14,9 @@ export const imageUploader = async (req, res, next, model, id) => {
       code: 404,
       message: "User not found",
     });
-  const profileImage = req.file?.path.replace(/\\/g, "/");
+
+  // Get the uploaded file info from Cloudinary middleware
+  const profileImage = req.uploadedFile?.url;
   if (!profileImage)
     return res.status(400).json({
       status: httpStatusText.FAIL,
@@ -22,29 +24,17 @@ export const imageUploader = async (req, res, next, model, id) => {
       message: "Image is required",
     });
 
-  if (!user.profileImage) {
-    user.profileImage = profileImage;
-    await user.save();
-  } else {
-    try {
-      fs.unlinkSync(user.profileImage, (err) => {
-        if (err)
-          return res.status(500).json({
-            status: httpStatusText.ERROR,
-            code: 500,
-            message: "Error deleting file",
-          });
-      });
-      user.profileImage = profileImage;
-      await user.save();
-    } catch (error) {
-      next(error);
-    }
-  }
+  // Update user profile image (no need to delete old file since it's on Cloudinary)
+  user.profileImage = profileImage;
+  await user.save();
+
   return res.status(200).json({
     status: httpStatusText.SUCCESS,
     code: 200,
     message: "Image uploaded successfully",
+    data: {
+      profileImage: profileImage
+    }
   });
 };
 
@@ -78,7 +68,7 @@ export const nationalIDImage = asyncWrapper(async (req, res, next) => {
       message: "User not found",
     });
 
-  const nationalIDImage = req.file?.path.replace(/\\/g, "/");
+  const nationalIDImage = req.uploadedFile?.url;
 
   if (!nationalIDImage)
     return res.status(400).json({
@@ -87,25 +77,9 @@ export const nationalIDImage = asyncWrapper(async (req, res, next) => {
       message: "Image is required",
     });
 
-  if (!intern.nationalIDImage) {
-    intern.nationalIDImage = nationalIDImage;
-    await intern.save();
-  } else {
-    try {
-      fs.unlinkSync(intern.nationalIDImage, (err) => {
-        if (err)
-          return res.status(500).json({
-            status: httpStatusText.ERROR,
-            code: 500,
-            message: "Error deleting file",
-          });
-      });
-      intern.nationalIDImage = nationalIDImage;
-      await intern.save();
-    } catch (error) {
-      next(error);
-    }
-  }
+  // Update intern national ID image (no need to delete old file since it's on Cloudinary)
+  intern.nationalIDImage = nationalIDImage;
+  await intern.save();
 
   return res.status(200).json({
     status: httpStatusText.SUCCESS,
@@ -137,7 +111,7 @@ export const mbbchCertificateImage = asyncWrapper(async (req, res, next) => {
       message: "User not found",
     });
 
-  const mbbchCertificateImage = req.file?.path.replace(/\\/g, "/");
+  const mbbchCertificateImage = req.uploadedFile?.url;
 
   if (!mbbchCertificateImage)
     return res.status(400).json({
@@ -146,25 +120,9 @@ export const mbbchCertificateImage = asyncWrapper(async (req, res, next) => {
       message: "Image is required",
     });
 
-  if (!intern.mbbchCertificateImage) {
-    intern.mbbchCertificateImage = mbbchCertificateImage;
-    await intern.save();
-  } else {
-    try {
-      fs.unlinkSync(intern.mbbchCertificateImage, (err) => {
-        if (err)
-          return res.status(500).json({
-            status: httpStatusText.ERROR,
-            code: 500,
-            message: "Error deleting file",
-          });
-      });
-      intern.mbbchCertificateImage = mbbchCertificateImage;
-      await intern.save();
-    } catch (error) {
-      next(error);
-    }
-  }
+  // Update intern MBBCH certificate image (no need to delete old file since it's on Cloudinary)
+  intern.mbbchCertificateImage = mbbchCertificateImage;
+  await intern.save();
 
   return res.status(200).json({
     status: httpStatusText.SUCCESS,
