@@ -19,6 +19,7 @@ const videoSchema = new mongoose.Schema(
     },
     duration: { type: String, required: [true, "Duration is required"] },
     courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
+    chapterId: { type: mongoose.Schema.Types.ObjectId, ref: "Chapter" },
     quizId: { type: mongoose.Schema.Types.ObjectId, ref: "Quiz" },
   },
   { timestamps: true }

@@ -1,6 +1,5 @@
 import express from "express";
 import isAdmin from "../../middlewares/isAdmin.js";
-import courseValidation from "../../validation/course/course.validation.js";
 import isAuthenticated from "../../middlewares/isAuthenticated.js";
 import validate from "../../validation/validate.js";
 import {
@@ -21,9 +20,28 @@ import {
   updateQuiz,
   updateVideo,
 } from "../../controllers/admin/admin.courses.controller.js";
-import { videoValidation } from "../../validation/course/video.validation.js";
+
+import {
+  createSection,
+  getCourseSections,
+  getSection,
+  updateSection,
+  deleteSection,
+  updateSectionStatus,
+} from "../../controllers/admin/admin.sections.controller.js";
+
+import {
+  createChapter,
+  getSectionChapters,
+  getChapter,
+  updateChapter,
+  deleteChapter,
+  updateChapterStatus,
+} from "../../controllers/admin/admin.chapters.controller.js";
+
 import { quizValidation } from "../../validation/course/quiz.validation.js";
-import multerConfig from "../../services/multerConfig.js";
+import { sectionValidation } from "../../validation/course/section.validation.js";
+import { chapterValidation } from "../../validation/course/chapter.validation.js";
 import { handleUploadError, handleUploadSuccess, uploadToFolderFlexible, uploadVideoToFolderFlexible } from "../../services/cloudnairyUpload.js";
 import checkAdminAndCleanup from "../../middlewares/checkAdminAndCleanup.js";
 import checkAdminAndCleanupVideo from "../../middlewares/checkAdminAndCleanupVideo.js";
@@ -84,10 +102,10 @@ coursesForAdminRoutes.post(
 );
 
 // Delete video
-coursesForAdminRoutes.delete("/delete-video/:videoId", isAuthenticated, isAdmin, deleteVideoFromCourse);
+coursesForAdminRoutes.delete("/delete-video/:videoId/chapter/:chapterId", isAuthenticated, isAdmin, deleteVideoFromCourse);
 
 // Update video
-coursesForAdminRoutes.patch("/update-video/:videoId",
+coursesForAdminRoutes.patch("/update-video/:videoId/chapter/:chapterId",
   uploadVideoToFolderFlexible("courseVideos"),
   handleUploadError,
   handleUploadSuccess,
@@ -109,7 +127,7 @@ coursesForAdminRoutes.post(
 );
 
 // Delete quiz
-coursesForAdminRoutes.delete("/videos/:videoId/quizzes/:quizId", isAuthenticated, isAdmin, deleteQuiz);
+coursesForAdminRoutes.delete("/videos/quizzes/:quizId", isAuthenticated, isAdmin, deleteQuiz);
 
 // Get quiz by id ( for admin only )
 coursesForAdminRoutes.get("/quizzes/:quizId", isAuthenticated, isAdmin, getQuizById);
@@ -123,6 +141,76 @@ coursesForAdminRoutes.patch(
   updateQuiz
 );
 
+/****************************SECTIONS ROUTES***************************/
 
+// GET all sections for a course
+coursesForAdminRoutes.get("/:courseId/sections", isAuthenticated, isAdmin, getCourseSections);
+
+// GET single section
+coursesForAdminRoutes.get("/:courseId/sections/:sectionId", isAuthenticated, isAdmin, getSection);
+
+// Create new section
+coursesForAdminRoutes.post(
+  "/:courseId/sections",
+  isAuthenticated,
+  isAdmin,
+  createSection
+);
+
+// Update section
+coursesForAdminRoutes.patch(
+  "/:courseId/sections/:sectionId",
+  isAuthenticated,
+  isAdmin,
+  updateSection
+);
+
+// Update section status
+coursesForAdminRoutes.patch(
+  "/:courseId/sections/:sectionId/status",
+  isAuthenticated,
+  isAdmin,
+  updateSectionStatus
+);
+
+// Delete section
+coursesForAdminRoutes.delete("/:courseId/sections/:sectionId", isAuthenticated, isAdmin, deleteSection);
+
+/****************************CHAPTERS ROUTES***************************/
+
+// GET all chapters for a section
+coursesForAdminRoutes.get("/:courseId/sections/:sectionId/chapters", isAuthenticated, isAdmin, getSectionChapters);
+
+// GET single chapter
+coursesForAdminRoutes.get("/:courseId/sections/:sectionId/chapters/:chapterId", isAuthenticated, isAdmin, getChapter);
+
+// Create new chapter
+coursesForAdminRoutes.post(
+  "/:courseId/sections/:sectionId/chapters",
+  isAuthenticated,
+  isAdmin,
+  // validate(chapterValidation.createChapterValidation, true),
+  createChapter
+);
+
+// Update chapter
+coursesForAdminRoutes.patch(
+  "/:courseId/sections/:sectionId/chapters/:chapterId",
+  isAuthenticated,
+  isAdmin,
+  validate(chapterValidation.updateChapterValidation, true),
+  updateChapter
+);
+
+// Update chapter status
+coursesForAdminRoutes.patch(
+  "/:courseId/sections/:sectionId/chapters/:chapterId/status",
+  isAuthenticated,
+  isAdmin,
+  updateChapterStatus
+);
+
+// Delete chapter
+coursesForAdminRoutes.delete("/:courseId/sections/:sectionId/chapters/:chapterId", isAuthenticated, isAdmin, deleteChapter);
 
 export default coursesForAdminRoutes;

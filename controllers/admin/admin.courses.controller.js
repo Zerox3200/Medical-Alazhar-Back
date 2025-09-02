@@ -1,6 +1,7 @@
 import Course from "../../models/course/course.models.js";
 import Quiz from "../../models/course/quiz.models.js";
 import Video from "../../models/course/video.models.js";
+import Chapter from "../../models/course/chapter.models.js";
 import asyncWrapper from "../../middlewares/asyncWrapper.js";
 import httpStatusText from "../../utils/httpStatusText.js";
 import checkIdValidity from "../../utils/checkIdValidity.js";
@@ -161,20 +162,36 @@ export const getAvailableVideos = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// Add new video
+// Add new video to chapter
 export const addVideosToCourse = asyncWrapper(async (req, res, next) => {
-  const { courseId } = req.params;
-  checkIdValidity(courseId, res);
 
-  const course = await Course.findById(courseId).lean();
-  if (!course)
+  const { courseId } = req.params;
+  const { chapterId, title, level, description, duration } = req.body;
+
+  checkIdValidity(courseId, res, chapterId);
+
+  const [course, chapter] = await Promise.all([
+    Course.findById(courseId).lean(),
+    Chapter.findById(chapterId).lean(),
+  ]);
+
+  if (!course || !chapter) {
     return res.status(404).json({
       code: 404,
       status: httpStatusText.ERROR,
-      message: "Course not found",
+      message: "Course or chapter not found",
     });
+  }
 
-  const { title, level, description, duration } = req.body;
+  // Verify chapter belongs to the course
+  if (chapter.courseId.toString() !== courseId) {
+    return res.status(400).json({
+      code: 400,
+      status: httpStatusText.ERROR,
+      message: "Chapter does not belong to this course",
+    });
+  }
+
 
   // Get the uploaded video file info from the middleware
   const videoUrl = req.uploadedFile ? req.uploadedFile.url : null;
@@ -193,6 +210,7 @@ export const addVideosToCourse = asyncWrapper(async (req, res, next) => {
     level,
     description,
     courseId,
+    chapterId,
   });
 
   if (!newVideo)
@@ -202,8 +220,14 @@ export const addVideosToCourse = asyncWrapper(async (req, res, next) => {
     });
   await newVideo.save();
 
+  // Add video to chapter
+  await Chapter.findByIdAndUpdate(chapterId, {
+    $push: { videos: newVideo._id },
+  });
+
+  // Add video to course (for backward compatibility)
   await Course.findByIdAndUpdate(courseId, {
-    $push: { videos: newVideo },
+    $push: { videos: newVideo._id },
   });
 
   return res.status(201).json({
@@ -222,12 +246,12 @@ export const addVideosToCourse = asyncWrapper(async (req, res, next) => {
 
 // Update video
 export const updateVideo = asyncWrapper(async (req, res, next) => {
-  const { videoId } = req.params;
+  const { videoId, chapterId } = req.params;
   const { title, level, description, duration } = req.body;
   const videoUrl = req.uploadedFile ? req.uploadedFile.url : null;
 
   checkIdValidity(videoId);
-
+  checkIdValidity(chapterId, res);
   const video = await Video.findById(videoId);
 
 
@@ -236,6 +260,25 @@ export const updateVideo = asyncWrapper(async (req, res, next) => {
       code: 404,
       status: httpStatusText.ERROR,
       message: "Video not found",
+    });
+  }
+
+  if (video.chapterId.toString() !== chapterId) {
+
+    return res.status(400).json({
+      code: 400,
+      status: httpStatusText.ERROR,
+      message: "Video does not belong to this chapter",
+    });
+  }
+
+  const chapter = await Chapter.findById(chapterId);
+
+  if (!chapter) {
+    return res.status(404).json({
+      code: 404,
+      status: httpStatusText.ERROR,
+      message: "Chapter not found",
     });
   }
 
@@ -278,9 +321,11 @@ export const updateVideo = asyncWrapper(async (req, res, next) => {
 
 // Delete video from course
 export const deleteVideoFromCourse = asyncWrapper(async (req, res, next) => {
-  const { videoId } = req.params;
+  const { videoId, chapterId } = req.params;
 
   checkIdValidity(videoId);
+
+  checkIdValidity(chapterId, res);
 
   const video = await Video.findById(videoId);
 
@@ -304,8 +349,9 @@ export const deleteVideoFromCourse = asyncWrapper(async (req, res, next) => {
     });
   }
 
-  const [deletedVideoFromDB, deletedQuizFromDB] = await Promise.all([
+  const [deletedVideoFromDB, deletedVideoFromChapter, deletedQuizFromDB] = await Promise.all([
     Video.findByIdAndDelete(videoId),
+    Chapter.findByIdAndUpdate(chapterId, { $pull: { videos: videoId } }),
     Quiz.findOneAndDelete({ videoId }),
   ]);
 
@@ -314,6 +360,26 @@ export const deleteVideoFromCourse = asyncWrapper(async (req, res, next) => {
       code: 404,
       status: httpStatusText.ERROR,
       message: "Video not found",
+      success: false,
+    });
+  }
+
+  if (!deletedVideoFromChapter) {
+    return res.status(404).json({
+      code: 404,
+      status: httpStatusText.ERROR,
+      message: "Chapter not found",
+      success: false,
+    });
+  }
+
+  const updatedCourse = await Course.findByIdAndUpdate(video.courseId, { $pull: { videos: videoId } });
+
+  if (!updatedCourse) {
+    return res.status(404).json({
+      code: 404,
+      status: httpStatusText.ERROR,
+      message: "Course not found",
       success: false,
     });
   }
@@ -333,7 +399,7 @@ export const updateCourseStatus = asyncWrapper(async (req, res, next) => {
 
   checkIdValidity(courseId, res);
 
-  const course = await Course.findById(courseId);
+  const course = await Course.findById(courseId).populate("sections");
 
   if (!course) {
     return res.status(404).json({
@@ -342,10 +408,11 @@ export const updateCourseStatus = asyncWrapper(async (req, res, next) => {
     });
   }
 
-  if (course.videos.length === 0) {
+  // Allow publishing courses with sections even if they don't have chapters yet
+  if (course.sections.length === 0) {
     return res.status(422).json({
       success: false,
-      message: "You can't publish a course without videos",
+      message: "You can't publish a course without sections",
     });
   }
 
@@ -354,67 +421,6 @@ export const updateCourseStatus = asyncWrapper(async (req, res, next) => {
   return res.status(200).json({
     message: "Course status updated successfully",
     course: updatedCourse,
-    success: true,
-  });
-});
-
-// Add new quiz
-export const addQuizzesToCourse = asyncWrapper(async (req, res, next) => {
-  const { questions, videoId, courseId } = req.body;
-
-  checkIdValidity(courseId, res, videoId);
-
-  const [course, video] = await Promise.all([
-    Course.findById(courseId).lean(),
-    Video.findById(videoId).lean(),
-  ]);
-
-  if (!course || !video) {
-    return res.status(404).json({
-      code: 404,
-      status: httpStatusText.ERROR,
-      message: "Course not found",
-      success: false,
-    });
-  }
-
-  if (video.quizId)
-    return res.status(422).json({
-      code: 422,
-      status: httpStatusText.ERROR,
-      message: "This video has already a quiz",
-      success: false,
-    });
-
-  const newQuiz = new Quiz({
-    questions,
-    courseId,
-    videoId,
-  });
-
-  if (!newQuiz)
-    return res.status(422).json({
-      status: httpStatusText.ERROR,
-      message: "Error: Can't add this quiz",
-      success: false,
-    });
-  await newQuiz.save();
-
-  await Promise.all([
-    Course.findByIdAndUpdate(courseId, {
-      $push: { quizzes: newQuiz._id },
-    }),
-    Video.findByIdAndUpdate(videoId, { quizId: newQuiz._id }),
-  ]);
-
-  return res.status(201).json({
-    status: httpStatusText.SUCCESS,
-    message: "Quiz added successfully",
-    data: {
-      quiz: newQuiz,
-      course: course.title,
-      video: video.title,
-    },
     success: true,
   });
 });
@@ -488,7 +494,41 @@ export const getCourseData = asyncWrapper(async (req, res, next) => {
   checkIdValidity(courseId, res);
 
   const course = await Course.findById(courseId)
-    .populate("videos", "title url duration description level quizId")
+    .populate({
+      path: "sections",
+      select: "title description order isPublished",
+      options: { sort: { order: 1 } },
+      populate: {
+        path: "chapters",
+        select: "title description order isPublished",
+        options: { sort: { order: 1 } },
+        populate: {
+          path: "videos",
+          select: "title url duration description level quizId",
+          options: { sort: { createdAt: 1 } },
+          populate: {
+            path: "quizId",
+            select: "questions videoId", // what you want to show
+            populate: {
+              path: "videoId",
+              select: "title"
+            }
+          }
+        }
+      },
+    })
+    .populate({
+      path: "videos",
+      select: "title url duration description level quizId",
+      populate: {
+        path: "quizId",
+        select: "questions videoId",
+        populate: {
+          path: "videoId",
+          select: "title"
+        }
+      }
+    })
     .populate({
       path: "quizzes",
       select: "questions videoId",
@@ -498,7 +538,6 @@ export const getCourseData = asyncWrapper(async (req, res, next) => {
       }
     })
     .lean();
-
 
 
   if (!course)
@@ -520,6 +559,11 @@ export const getCourseData = asyncWrapper(async (req, res, next) => {
 export const getAllCourses = asyncWrapper(async (req, res, next) => {
 
   const courses = await Course.find()
+    .populate({
+      path: "sections",
+      select: "title description order isPublished",
+      options: { sort: { order: 1 } },
+    })
     .populate("videos", "title url duration")
     .populate("quizzes", "questions")
     .lean();
@@ -527,7 +571,6 @@ export const getAllCourses = asyncWrapper(async (req, res, next) => {
   const publishedCourses = courses.filter(course => course.published).length;
   const totalCourses = courses.length;
   const unpublishedCourses = totalCourses - publishedCourses;
-
 
   if (!courses)
     return res.status(404).json({
@@ -545,6 +588,67 @@ export const getAllCourses = asyncWrapper(async (req, res, next) => {
     publishedCourses,
     courses,
     message: "Fetched successfully.",
+    success: true,
+  });
+});
+
+// Add new quiz
+export const addQuizzesToCourse = asyncWrapper(async (req, res, next) => {
+  const { questions, videoId, courseId } = req.body;
+
+  checkIdValidity(courseId, res, videoId);
+
+  const [course, video] = await Promise.all([
+    Course.findById(courseId).lean(),
+    Video.findById(videoId).lean(),
+  ]);
+
+  if (!course || !video) {
+    return res.status(404).json({
+      code: 404,
+      status: httpStatusText.ERROR,
+      message: "Course not found",
+      success: false,
+    });
+  }
+
+  if (video.quizId)
+    return res.status(422).json({
+      code: 422,
+      status: httpStatusText.ERROR,
+      message: "This video has already a quiz",
+      success: false,
+    });
+
+  const newQuiz = new Quiz({
+    questions,
+    courseId,
+    videoId,
+  });
+
+  if (!newQuiz)
+    return res.status(422).json({
+      status: httpStatusText.ERROR,
+      message: "Error: Can't add this quiz",
+      success: false,
+    });
+  await newQuiz.save();
+
+  await Promise.all([
+    Course.findByIdAndUpdate(courseId, {
+      $push: { quizzes: newQuiz._id },
+    }),
+    Video.findByIdAndUpdate(videoId, { quizId: newQuiz._id }),
+  ]);
+
+  return res.status(201).json({
+    status: httpStatusText.SUCCESS,
+    message: "Quiz added successfully",
+    data: {
+      quiz: newQuiz,
+      course: course.title,
+      video: video.title,
+    },
     success: true,
   });
 });

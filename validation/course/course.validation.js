@@ -24,20 +24,18 @@ const courseValidation = [
     .withMessage("Mentor name must be at least 5 letters")
     .isAlpha("en-US", { ignore: [" ", "."] })
     .withMessage("Mentor can only contain letters"),
-  // Course image
+  // Course image (optional)
   check("courseImage")
-    .notEmpty()
+    .optional()
     .trim()
-    .withMessage("Image must be provided")
     .isURL()
     .withMessage("This url is not valid"),
   // Tags
   check("tags")
+    .isArray()
+    .withMessage("Tags must be an array")
     .notEmpty()
-    .trim()
-    .withMessage("Please, add at least one tag")
-    .isAlpha()
-    .withMessage("Description can only contain letters"),
+    .withMessage("Please, add at least one tag"),
 ];
 
 export default courseValidation;

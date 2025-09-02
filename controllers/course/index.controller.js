@@ -12,6 +12,11 @@ import { ErrorCatch } from "../../utils/appError.js";
 // Get courses
 export const getAllCourses = ErrorCatch(async (req, res, next) => {
   const courses = await Course.find()
+    .populate({
+      path: "sections",
+      select: "title description order isPublished",
+      options: { sort: { order: 1 } },
+    })
     .populate("videos", "title url duration quizId")
     .populate("quizzes", "questions videoId")
     .lean();
@@ -39,6 +44,21 @@ export const getCourse = ErrorCatch(async (req, res, next) => {
   checkIdValidity(courseId, res);
 
   const course = await Course.findById(courseId)
+    .populate({
+      path: "sections",
+      select: "title description order isPublished",
+      options: { sort: { order: 1 } },
+      populate: {
+        path: "chapters",
+        select: "title description order isPublished",
+        options: { sort: { order: 1 } },
+        populate: {
+          path: "videos",
+          select: "title url duration description level quizId",
+          options: { sort: { createdAt: 1 } },
+        },
+      },
+    })
     .populate("videos", "title url duration")
     .populate("quizzes", "questions")
     .lean();
