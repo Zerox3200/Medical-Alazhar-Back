@@ -70,7 +70,7 @@ const checkExistingUser = async (record, msg) => {
 
 export const internSignupValidation = [
   // English name
-  check("englishName")
+  check("fullname")
     .notEmpty()
     .trim()
     .withMessage("English name must be provided")
