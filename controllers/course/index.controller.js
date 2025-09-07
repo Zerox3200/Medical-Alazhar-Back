@@ -11,21 +11,14 @@ import { ErrorCatch } from "../../utils/appError.js";
 
 // Get courses
 export const getAllCourses = ErrorCatch(async (req, res, next) => {
-  const courses = await Course.find()
-    .populate({
-      path: "sections",
-      select: "title description order isPublished",
-      options: { sort: { order: 1 } },
-    })
-    .populate("videos", "title url duration quizId")
-    .populate("quizzes", "questions videoId")
-    .lean();
+  const courses = await Course.find().lean();
 
   if (!courses)
     return res.status(404).json({
       status: httpStatusText.ERROR,
       code: 404,
       message: "No courses.",
+      success: false,
     });
 
   return res.status(200).json({
@@ -34,6 +27,7 @@ export const getAllCourses = ErrorCatch(async (req, res, next) => {
     count: courses.length,
     courses,
     message: "Fetched successfully.",
+    success: true,
   });
 });
 

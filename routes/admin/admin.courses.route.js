@@ -16,6 +16,7 @@ import {
   getQuizById,
   getVideo,
   updateCourse,
+  updateCoursePaidStatus,
   updateCourseStatus,
   updateQuiz,
   updateVideo,
@@ -89,6 +90,9 @@ coursesForAdminRoutes.patch("/:courseId",
 
 // update course status
 coursesForAdminRoutes.patch("/:courseId/status", isAuthenticated, isAdmin, updateCourseStatus);
+
+// update course paid status
+coursesForAdminRoutes.patch("/:courseId/paid", isAuthenticated, isAdmin, updateCoursePaidStatus);
 
 // Add videos to course
 coursesForAdminRoutes.post(

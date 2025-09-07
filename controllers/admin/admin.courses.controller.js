@@ -425,6 +425,49 @@ export const updateCourseStatus = asyncWrapper(async (req, res, next) => {
   });
 });
 
+// update course paid status
+export const updateCoursePaidStatus = asyncWrapper(async (req, res, next) => {
+  const { courseId } = req.params;
+  const { paid, price } = req.body;
+
+  checkIdValidity(courseId, res);
+
+  const course = await Course.findById(courseId);
+
+  if (!course) {
+    return res.status(404).json({
+      code: 404,
+      status: httpStatusText.ERROR,
+      success: false,
+      message: "Course not found",
+    });
+  }
+
+  if (!course.sections.length) {
+    return res.status(422).json({
+      code: 422,
+      status: httpStatusText.ERROR,
+      success: false,
+      message: "You can't update the paid status of a course without sections",
+      success: false,
+    });
+  }
+
+  let updatedCourse
+
+  if (!paid) {
+    updatedCourse = await Course.findByIdAndUpdate(courseId, { paid, price: 0 }, { new: true });
+  } else {
+    updatedCourse = await Course.findByIdAndUpdate(courseId, { paid, price }, { new: true });
+  }
+
+  return res.status(200).json({
+    message: "Course paid status updated successfully",
+    course: updatedCourse,
+    success: true,
+  });
+});
+
 // Delete quiz
 export const deleteQuiz = asyncWrapper(async (req, res, next) => {
   const { quizId } = req.params;

@@ -17,6 +17,8 @@ const courseSchema = new mongoose.Schema({
   quizzes: [{ type: mongoose.Schema.Types.ObjectId, ref: "Quiz" }],
   certificateTemplate: String,
   published: { type: Boolean, default: false },
+  paid: { type: Boolean, default: false },
+  price: { type: Number, default: 0 },
 });
 
 const Course = mongoose.models.Course || mongoose.model("Course", courseSchema);
