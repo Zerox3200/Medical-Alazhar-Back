@@ -49,14 +49,11 @@ export const appRouter = (app, express) => {
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
-
+  // "http://localhost:5173"
   // CORS
   app.use(
     cors({
-      origin: [
-        "https://medical-alazhar-front.vercel.app/",
-        "http://localhost:5173"
-      ],
+      origin: "https://medical-alazhar-front.vercel.app/",
       optionsSuccessStatus: 200,
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization"],
