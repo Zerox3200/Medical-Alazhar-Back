@@ -2,15 +2,17 @@ import cloudinary from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import multer from 'multer';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 
 // Load environment variables
 dotenv.config();
 
 // Configure Cloudinary
 cloudinary.config({
-    cloud_name: 'dn6149nzx',
-    api_key: '729586793226188',
-    api_secret: 'tTWSJV_s1lAqIBj2OEHle-I_0EQ'
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dn6149nzx',
+    api_key: process.env.CLOUDINARY_API_KEY || '729586793226188',
+    api_secret: process.env.CLOUDINARY_API_SECRET || 'tTWSJV_s1lAqIBj2OEHle-I_0EQ'
 });
 
 
@@ -19,7 +21,7 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
-        folder: 'medical_interns',
+        folder: process.env.CLOUDINARY_FOLDER || 'medical_interns',
         allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
         transformation: [
             { width: 1000, height: 1000, crop: 'limit' },
@@ -59,7 +61,7 @@ export const uploadToFolder = (folderName, fieldName = 'image') => {
     const folderStorage = new CloudinaryStorage({
         cloudinary: cloudinary,
         params: {
-            folder: `medical_interns/${folderName}`,
+            folder: `${process.env.CLOUDINARY_FOLDER}/${folderName}`,
             allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
             transformation: [
                 { width: 1000, height: 1000, crop: 'limit' },
@@ -86,20 +88,24 @@ export const uploadToFolder = (folderName, fieldName = 'image') => {
 
 // Flexible upload middleware that accepts any field name
 export const uploadToFolderFlexible = (folderName) => {
-    const folderStorage = new CloudinaryStorage({
-        cloudinary: cloudinary,
-        params: {
-            folder: `medical_interns/${folderName}`,
-            allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-            transformation: [
-                { width: 1000, height: 1000, crop: 'limit' },
-                { quality: 'auto' },
-                { fetch_format: 'auto' }
-            ]
+
+    // Use disk storage to save files temporarily before uploading to Cloudinary
+    const folderStorage = multer.diskStorage({
+        destination: (req, file, cb) => {
+            const tempDir = 'uploads/temp/';
+            // Create directory if it doesn't exist
+            if (!fs.existsSync(tempDir)) {
+                fs.mkdirSync(tempDir, { recursive: true });
+            }
+            cb(null, tempDir);
+        },
+        filename: (req, file, cb) => {
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+            cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
         }
     });
 
-    return multer({
+    const upload = multer({
         storage: folderStorage,
         limits: {
             fileSize: 5 * 1024 * 1024, // 5MB limit
@@ -111,7 +117,88 @@ export const uploadToFolderFlexible = (folderName) => {
                 cb(new Error('Only image files are allowed!'), false);
             }
         }
-    }).any(); // Accept any field name
+    });
+
+    // Create a custom middleware that wraps the multer middleware
+    return (req, res, next) => {
+        // Set a timeout to detect hanging Cloudinary uploads (reduced for faster feedback)
+        const uploadTimeout = setTimeout(() => {
+            return next(new Error('Upload timeout - Cloudinary upload took too long'));
+        }, 15000);
+
+        // Use .fields() with proper callback handling
+        const fieldsMiddleware = upload.fields([
+            { name: 'courseImage', maxCount: 1 },
+            { name: 'image', maxCount: 1 },
+            { name: 'file', maxCount: 1 },
+            { name: 'photo', maxCount: 1 },
+            { name: 'banner', maxCount: 1 },
+            { name: 'thumbnail', maxCount: 1 }
+        ]);
+
+        fieldsMiddleware(req, res, async (err) => {
+            clearTimeout(uploadTimeout); // Clear the timeout
+
+            if (err) {
+                return next(err);
+            }
+
+            try {
+                // Upload files to Cloudinary in parallel for better performance
+                if (req.files) {
+                    const uploadPromises = [];
+                    const filesToProcess = [];
+
+                    // Collect all files to upload
+                    for (const fieldName in req.files) {
+                        if (req.files[fieldName] && req.files[fieldName].length > 0) {
+                            const file = req.files[fieldName][0];
+                            filesToProcess.push({ file, fieldName });
+                        }
+                    }
+
+                    // Upload all files in parallel
+                    for (const { file, fieldName } of filesToProcess) {
+                        const uploadPromise = cloudinary.v2.uploader.upload(file.path, {
+                            folder: `${process.env.CLOUDINARY_FOLDER}/${folderName}`,
+                            // Optimize for speed - no transformations during upload
+                            resource_type: 'auto',
+                            use_filename: true,
+                            unique_filename: true,
+                            overwrite: false,
+                            eager_async: false
+                        }).then(result => {
+                            // Update file object with Cloudinary data
+                            file.secure_url = result.secure_url;
+                            file.public_id = result.public_id;
+                            file.cloudinary_url = result.secure_url;
+
+                            // Clean up local file
+                            try {
+                                if (fs.existsSync(file.path)) {
+                                    fs.unlinkSync(file.path);
+                                }
+                            } catch (cleanupError) {
+                                // Silent cleanup error
+                            }
+
+                            return result;
+                        });
+
+                        uploadPromises.push(uploadPromise);
+                    }
+
+                    // Wait for all uploads to complete
+                    await Promise.all(uploadPromises);
+                }
+
+                next();
+
+            } catch (cloudinaryError) {
+                return next(cloudinaryError);
+            }
+        });
+    };
 };
 
 // Video upload middleware for large video files (up to 500MB)
@@ -119,7 +206,7 @@ export const uploadVideoToFolder = (folderName, fieldName = 'video') => {
     const videoStorage = new CloudinaryStorage({
         cloudinary: cloudinary,
         params: {
-            folder: `medical_interns/${folderName}`,
+            folder: `${process.env.CLOUDINARY_FOLDER}/${folderName}`,
             resource_type: 'video',
             allowed_formats: ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv', 'm4v', '3gp'],
             transformation: [
@@ -135,7 +222,6 @@ export const uploadVideoToFolder = (folderName, fieldName = 'video') => {
             fileSize: 500 * 1024 * 1024, // 500MB limit for videos
         },
         fileFilter: (req, file, cb) => {
-            console.log('Processing video file:', file.originalname, 'Type:', file.mimetype);
             if (file.mimetype.startsWith('video/')) {
                 cb(null, true);
             } else {
@@ -147,40 +233,122 @@ export const uploadVideoToFolder = (folderName, fieldName = 'video') => {
 
 // Flexible video upload middleware that accepts any field name
 export const uploadVideoToFolderFlexible = (folderName) => {
-    const videoStorage = new CloudinaryStorage({
-        cloudinary: cloudinary,
-        params: {
-            folder: `medical_interns/${folderName}`,
-            resource_type: 'video',
-            allowed_formats: ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv', 'm4v', '3gp'],
-            transformation: [
-                { quality: 'auto' },
-                { fetch_format: 'auto' }
-            ]
+    // Use disk storage to save files temporarily before uploading to Cloudinary
+    const videoStorage = multer.diskStorage({
+        destination: (req, file, cb) => {
+            const tempDir = 'uploads/temp/';
+            // Create directory if it doesn't exist
+            if (!fs.existsSync(tempDir)) {
+                fs.mkdirSync(tempDir, { recursive: true });
+            }
+            cb(null, tempDir);
+        },
+        filename: (req, file, cb) => {
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+            cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
         }
     });
 
-    return multer({
+    const upload = multer({
         storage: videoStorage,
         limits: {
             fileSize: 500 * 1024 * 1024, // 500MB limit for videos
         },
         fileFilter: (req, file, cb) => {
-            console.log('Processing video file:', file.originalname, 'Type:', file.mimetype);
             if (file.mimetype.startsWith('video/')) {
                 cb(null, true);
             } else {
                 cb(new Error('Only video files are allowed!'), false);
             }
         }
-    }).any(); // Accept any field name
+    });
+
+    // Create a custom middleware that wraps the multer middleware
+    return (req, res, next) => {
+        // Set a timeout to detect hanging Cloudinary uploads
+        const uploadTimeout = setTimeout(() => {
+            return next(new Error('Upload timeout - Cloudinary upload took too long'));
+        }, 30000); // 30 seconds for videos (longer than images)
+
+        // Use .fields() with proper callback handling
+        const fieldsMiddleware = upload.fields([
+            { name: 'courseVideos', maxCount: 1 },
+            { name: 'video', maxCount: 1 },
+            { name: 'file', maxCount: 1 },
+            { name: 'videoFile', maxCount: 1 }
+        ]);
+
+        fieldsMiddleware(req, res, async (err) => {
+            clearTimeout(uploadTimeout); // Clear the timeout
+
+            if (err) {
+                return next(err);
+            }
+
+            try {
+                // Upload files to Cloudinary in parallel for better performance
+                if (req.files) {
+                    const uploadPromises = [];
+                    const filesToProcess = [];
+
+                    // Collect all files to upload
+                    for (const fieldName in req.files) {
+                        if (req.files[fieldName] && req.files[fieldName].length > 0) {
+                            const file = req.files[fieldName][0];
+                            filesToProcess.push({ file, fieldName });
+                        }
+                    }
+
+                    // Upload all files in parallel
+                    for (const { file, fieldName } of filesToProcess) {
+                        const uploadPromise = cloudinary.v2.uploader.upload(file.path, {
+                            folder: `${process.env.CLOUDINARY_FOLDER}/${folderName}`,
+                            resource_type: 'video',
+                            allowed_formats: ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv', 'm4v', '3gp'],
+                            // Optimize for speed - no transformations during upload
+                            use_filename: true,
+                            unique_filename: true,
+                            overwrite: false,
+                            eager_async: false
+                        }).then(result => {
+                            // Update file object with Cloudinary data
+                            file.secure_url = result.secure_url;
+                            file.public_id = result.public_id;
+                            file.cloudinary_url = result.secure_url;
+
+                            // Clean up local file
+                            try {
+                                if (fs.existsSync(file.path)) {
+                                    fs.unlinkSync(file.path);
+                                }
+                            } catch (cleanupError) {
+                                // Silent cleanup error
+                            }
+
+                            return result;
+                        });
+
+                        uploadPromises.push(uploadPromise);
+                    }
+
+                    // Wait for all uploads to complete
+                    await Promise.all(uploadPromises);
+                }
+
+                next();
+
+            } catch (cloudinaryError) {
+                return next(cloudinaryError);
+            }
+        });
+    };
 };
 
 // Direct upload function (for programmatic uploads)
 export const uploadImageDirectly = async (filePath, options = {}) => {
     try {
         const uploadOptions = {
-            folder: 'medical_interns',
+            folder: process.env.CLOUDINARY_FOLDER || 'medical_interns',
             resource_type: 'image',
             ...options
         };
@@ -209,7 +377,7 @@ export const uploadImageDirectly = async (filePath, options = {}) => {
 export const uploadBase64Image = async (base64String, options = {}) => {
     try {
         const uploadOptions = {
-            folder: 'medical_interns',
+            folder: process.env.CLOUDINARY_FOLDER || 'medical_interns',
             resource_type: 'image',
             ...options
         };
@@ -251,7 +419,6 @@ export const deleteImage = async (publicId) => {
             };
         }
 
-        console.log('Deleting image with public_id:', actualPublicId);
         const result = await cloudinary.uploader.destroy(actualPublicId);
 
         return {
@@ -285,7 +452,6 @@ export const deleteVideo = async (publicId) => {
             };
         }
 
-        console.log('Deleting video with public_id:', actualPublicId);
         const result = await cloudinary.uploader.destroy(actualPublicId, { resource_type: 'video' });
 
         return {
@@ -364,14 +530,14 @@ export const generateUploadSignature = (params = {}) => {
             timestamp: timestamp,
             ...params
         },
-        'tTWSJV_s1lAqIBj2OEHle-I_0EQ'
+        process.env.CLOUDINARY_API_SECRET || 'tTWSJV_s1lAqIBj2OEHle-I_0EQ'
     );
 
     return {
         timestamp,
         signature,
-        api_key: '729586793226188',
-        cloud_name: 'dn6149nzx'
+        api_key: process.env.CLOUDINARY_API_KEY || '729586793226188',
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dn6149nzx'
     };
 };
 
@@ -420,45 +586,48 @@ export const handleUploadError = (error, req, res, next) => {
 
 // Success response middleware
 export const handleUploadSuccess = (req, res, next) => {
-    if (req.file) {
-        req.uploadedFile = {
-            public_id: req.file.filename,
-            url: req.file.path,
-            width: req.file.width,
-            height: req.file.height,
-            format: req.file.format,
-            size: req.file.size,
-            duration: req.file.duration, // For videos
-            resource_type: req.file.resource_type || 'image' // 'image' or 'video'
-        };
-    }
+    // Handle .fields() structure - req.files is an object with field names as keys
+    if (req.files) {
+        // Find the first file from any field
+        let firstFile = null;
+        for (const fieldName in req.files) {
+            if (req.files[fieldName] && req.files[fieldName].length > 0) {
+                firstFile = req.files[fieldName][0];
+                break;
+            }
+        }
 
-    if (req.files && req.files.length > 0) {
-        // Handle multiple files from flexible upload
-        req.uploadedFiles = req.files.map(file => ({
-            public_id: file.filename,
-            url: file.path,
-            width: file.width,
-            height: file.height,
-            format: file.format,
-            size: file.size,
-            duration: file.duration, // For videos
-            resource_type: file.resource_type || 'image' // 'image' or 'video'
-        }));
-
-        // If only one file, also set it as uploadedFile for consistency
-        if (req.files.length === 1) {
+        if (firstFile) {
+            // Use real Cloudinary data from the upload
             req.uploadedFile = {
-                public_id: req.files[0].filename,
-                url: req.files[0].path,
-                width: req.files[0].width,
-                height: req.files[0].height,
-                format: req.files[0].format,
-                size: req.files[0].size,
-                duration: req.files[0].duration, // For videos
-                resource_type: req.files[0].resource_type || 'image' // 'image' or 'video'
+                public_id: firstFile.public_id || firstFile.originalname,
+                url: firstFile.secure_url || firstFile.cloudinary_url,
+                width: null,
+                height: null,
+                format: firstFile.mimetype?.split('/')[1] || 'unknown',
+                size: firstFile.size || 0,
+                duration: null,
+                resource_type: 'image',
+                originalname: firstFile.originalname,
+                mimetype: firstFile.mimetype
             };
         }
+    }
+
+    // Handle single file (for backward compatibility)
+    if (req.file) {
+        req.uploadedFile = {
+            public_id: req.file.public_id || req.file.originalname,
+            url: req.file.secure_url || req.file.cloudinary_url,
+            width: null,
+            height: null,
+            format: req.file.mimetype?.split('/')[1] || 'unknown',
+            size: req.file.size || 0,
+            duration: null,
+            resource_type: 'image',
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype
+        };
     }
 
     next();
@@ -478,4 +647,39 @@ export default {
     generateUploadSignature,
     handleUploadError,
     handleUploadSuccess
+};
+
+export const uploadToCloudinary = (folderName, fieldName = "file") => {
+    return [
+        upload.single(fieldName), // handles single file upload
+        async (req, res, next) => {
+            try {
+                if (!req.file) {
+                    return res.status(400).json({ error: "No file uploaded" });
+                }
+
+                // Upload file to Cloudinary
+                const result = await cloudinary.v2.uploader.upload(req.file.path, {
+                    folder: `${process.env.CLOUDINARY_FOLDER}/${folderName}`,
+                    transformation: [
+                        { width: 1000, height: 1000, crop: "limit" },
+                        { quality: "auto" },
+                        { fetch_format: "auto" },
+                    ],
+                });
+
+                // Attach secure_url to request for next function
+                req.file.secure_url = result.secure_url;
+                req.file.public_id = result.public_id;
+
+                // ✅ Cleanup local file after upload
+                fs.unlinkSync(req.file.path);
+
+                next();
+            } catch (error) {
+                console.error("Cloudinary upload error:", error);
+                return res.status(500).json({ error: "Upload to Cloudinary failed" });
+            }
+        },
+    ];
 };

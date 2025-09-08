@@ -13,10 +13,7 @@ import { deleteImage, deleteVideo } from "../../services/cloudnairyUpload.js";
 export const createCourse = ErrorCatch(async (req, res, next) => {
   const { title, description, mentor, tags } = req.body;
 
-
-  // Get the uploaded file info from the middleware
   const courseBanner = req.uploadedFile ? req.uploadedFile.url : null;
-
 
   const course = await Course.create({ title, description, courseBanner, mentor, tags });
 

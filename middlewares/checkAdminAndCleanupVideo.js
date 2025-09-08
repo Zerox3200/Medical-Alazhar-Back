@@ -6,7 +6,7 @@ import { deleteVideo } from "../services/cloudnairyUpload.js";
 const checkAdminAndCleanupVideo = ErrorCatch(async (req, res, next) => {
     const { id } = req.user;
 
-    const admin = await Admin.findOne({ _id: id });
+    const admin = await Admin.findById(id);
 
     if (!admin) {
         // User is not admin, cleanup the uploaded video from Cloudinary

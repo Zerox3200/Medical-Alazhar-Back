@@ -33,13 +33,13 @@ export const appRouter = (app, express) => {
   // Cookie Parser
   app.use(cookieParser());
 
-  app.use(
-    express.static("dist", {
-      setHeaders: (res) => {
-        res.set("Content-Type", "application/javascript");
-      },
-    })
-  );
+  // app.use(
+  //   express.static("dist", {
+  //     setHeaders: (res) => {
+  //       res.set("Content-Type", "application/javascript");
+  //     },
+  //   })
+  // );
 
   // Serve static files
   const uploadDir = path.join(__dirname, "uploads", "images");
@@ -49,11 +49,14 @@ export const appRouter = (app, express) => {
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
+
   // "http://localhost:5173"
+  // https://medical-alazhar-front.vercel.app
+
   // CORS
   app.use(
     cors({
-      origin: "https://medical-alazhar-front.vercel.app",
+      origin: "http://localhost:5173",
       optionsSuccessStatus: 200,
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization"],

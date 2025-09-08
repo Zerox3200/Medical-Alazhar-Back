@@ -43,7 +43,7 @@ import {
 import { quizValidation } from "../../validation/course/quiz.validation.js";
 import { sectionValidation } from "../../validation/course/section.validation.js";
 import { chapterValidation } from "../../validation/course/chapter.validation.js";
-import { handleUploadError, handleUploadSuccess, uploadToFolderFlexible, uploadVideoToFolderFlexible } from "../../services/cloudnairyUpload.js";
+import { handleUploadError, handleUploadSuccess, uploadToCloudinary, uploadToFolderFlexible, uploadVideoToFolderFlexible } from "../../services/cloudnairyUpload.js";
 import checkAdminAndCleanup from "../../middlewares/checkAdminAndCleanup.js";
 import checkAdminAndCleanupVideo from "../../middlewares/checkAdminAndCleanupVideo.js";
 
