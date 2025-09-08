@@ -8,7 +8,7 @@ export const generateAccessToken = (user) => {
       role: user.role,
       email: user.email,
     },
-    process.env.ACCESS_TOKEN_SECRET_KEY,
+    "CheeseCake",
     { expiresIn: "1d" }
   );
 
@@ -23,7 +23,7 @@ export const generateRefreshToken = (user) => {
       role: user.role,
       email: user.email,
     },
-    process.env.REFRESH_TOKEN_SECRET_KEY,
+    "CheeseCake",
     { expiresIn: "7d" }
   );
 
@@ -32,7 +32,7 @@ export const generateRefreshToken = (user) => {
 
 // Generate Reset Tokens
 export const generateResetToken = (userId) => {
-  const resetToken = jwt.sign({ userId }, process.env.RESET_TOKEN_SECRET_KEY, {
+  const resetToken = jwt.sign({ userId }, "CheeseCake", {
     expiresIn: "15m",
   });
 

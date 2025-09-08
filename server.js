@@ -11,7 +11,7 @@ appRouter(app, express);
 // Connect to db and start server
 const connectDB = async () => {
   try {
-    const connection = await mongoose.connect(process.env.MONGODB_URI, {
+    const connection = await mongoose.connect("mongodb+srv://ahmedjootravel:8rVMVqHfCo5G5bRp@cluster0.ghntmgs.mongodb.net/mims", {
       maxPoolSize: 50,
       minPoolSize: 10,
       socketTimeoutMS: 30000,
@@ -33,8 +33,8 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    const server = app.listen(process.env.PORT, () => {
-      console.log(`🚀 Server running on port ${process.env.PORT}`);
+    const server = app.listen(3000, () => {
+      console.log(`🚀 Server running on port ${3000}`);
     });
 
     process.on("SIGTERM", () => {

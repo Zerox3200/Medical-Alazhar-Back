@@ -18,7 +18,7 @@ const isAuthenticated = ErrorCatch(async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET_KEY);
+    const decoded = jwt.verify(token, "CheeseCake");
 
     // Await DB lookups
     const [admin, intern, supervisor] = await Promise.all([
