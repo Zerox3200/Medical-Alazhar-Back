@@ -54,7 +54,7 @@ export const appRouter = (app, express) => {
   app.use(
     cors({
       // origin: "http://localhost:5173",
-      origin: "*",
+      origin: "https://medical-alazhar-front.vercel.app",
       optionsSuccessStatus: 200,
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization"],
