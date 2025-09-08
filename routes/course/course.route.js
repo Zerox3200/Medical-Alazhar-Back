@@ -1,7 +1,7 @@
 import express from "express";
 import {
-  getAllCourses,
-  getCourse,
+  getAllCoursesForUser,
+  getCourseForUser,
   getQuiz,
   getVideo,
   submitQuiz,
@@ -14,10 +14,10 @@ import isAuthenticated from "../../middlewares/isAuthenticated.js";
 const courseRoutes = express.Router({ mergeParams: true });
 
 // GET all courses
-courseRoutes.get("/", getAllCourses);
+courseRoutes.get("/courses", getAllCoursesForUser);
 
 // GET single course
-courseRoutes.get("/:courseId", getCourse);
+courseRoutes.get("/:courseId", getCourseForUser);
 
 // GET quiz - NOTE: quizId is a query parameter
 courseRoutes.get(

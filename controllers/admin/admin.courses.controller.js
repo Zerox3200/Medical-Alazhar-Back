@@ -180,7 +180,6 @@ export const addVideosToCourse = asyncWrapper(async (req, res, next) => {
     });
   }
 
-  // Verify chapter belongs to the course
   if (chapter.courseId.toString() !== courseId) {
     return res.status(400).json({
       code: 400,
@@ -190,7 +189,6 @@ export const addVideosToCourse = asyncWrapper(async (req, res, next) => {
   }
 
 
-  // Get the uploaded video file info from the middleware
   const videoUrl = req.uploadedFile ? req.uploadedFile.url : null;
 
   if (!videoUrl) {
@@ -217,12 +215,10 @@ export const addVideosToCourse = asyncWrapper(async (req, res, next) => {
     });
   await newVideo.save();
 
-  // Add video to chapter
   await Chapter.findByIdAndUpdate(chapterId, {
     $push: { videos: newVideo._id },
   });
 
-  // Add video to course (for backward compatibility)
   await Course.findByIdAndUpdate(courseId, {
     $push: { videos: newVideo._id },
   });
@@ -596,7 +592,7 @@ export const getCourseData = asyncWrapper(async (req, res, next) => {
 });
 
 // Get all courses
-export const getAllCourses = asyncWrapper(async (req, res, next) => {
+export const getAllCoursesForAdmin = asyncWrapper(async (req, res, next) => {
 
   const courses = await Course.find()
     .populate({

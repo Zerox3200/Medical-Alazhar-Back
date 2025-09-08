@@ -9,7 +9,7 @@ import {
   deleteCourse,
   deleteQuiz,
   deleteVideoFromCourse,
-  getAllCourses,
+  getAllCoursesForAdmin,
   getAvailableVideos,
   getCourseData,
   getQuiz,
@@ -52,7 +52,7 @@ const coursesForAdminRoutes = express.Router({ mergeParams: true });
 /****************************GET***************************/
 
 // GET all courses
-coursesForAdminRoutes.get("/", isAuthenticated, isAdmin, getAllCourses);
+coursesForAdminRoutes.get("/", isAuthenticated, isAdmin, getAllCoursesForAdmin);
 
 // GET course data
 coursesForAdminRoutes.get("/:courseId", isAuthenticated, isAdmin, getCourseData);

@@ -9,30 +9,58 @@ import _ from "lodash";
 import { ErrorCatch } from "../../utils/appError.js";
 
 
-// Get courses
-export const getAllCourses = ErrorCatch(async (req, res, next) => {
-  const courses = await Course.find().lean();
+// Get courses with pagination
+export const getAllCoursesForUser = ErrorCatch(async (req, res, next) => {
 
-  if (!courses)
+  const page = parseInt(req.query.page) || 1;
+  const limit = 15;
+  const skip = (page - 1) * limit;
+
+  // Get total count for pagination info
+  const totalCourses = await Course.countDocuments();
+
+  // Get courses with pagination
+  const courses = await Course.find()
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  if (!courses || courses.length === 0)
     return res.status(404).json({
       status: httpStatusText.ERROR,
       code: 404,
-      message: "No courses.",
+      message: "No courses found.",
       success: false,
     });
+
+  // Calculate pagination info
+  const totalPages = Math.ceil(totalCourses / limit);
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
 
   return res.status(200).json({
     status: httpStatusText.SUCCESS,
     code: 200,
-    count: courses.length,
-    courses,
-    message: "Fetched successfully.",
+    data: {
+      courses,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCourses,
+        coursesPerPage: limit,
+        hasNextPage,
+        hasPrevPage,
+        nextPage: hasNextPage ? page + 1 : null,
+        prevPage: hasPrevPage ? page - 1 : null
+      }
+    },
+    message: "Courses fetched successfully.",
     success: true,
   });
 });
 
 // Get course data
-export const getCourse = ErrorCatch(async (req, res, next) => {
+export const getCourseForUser = ErrorCatch(async (req, res, next) => {
   const { courseId } = req.params;
 
   checkIdValidity(courseId, res);
@@ -52,10 +80,7 @@ export const getCourse = ErrorCatch(async (req, res, next) => {
           options: { sort: { createdAt: 1 } },
         },
       },
-    })
-    .populate("videos", "title url duration")
-    .populate("quizzes", "questions")
-    .lean();
+    }).lean();
 
   if (!course)
     return res.status(404).json({
