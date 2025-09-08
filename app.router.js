@@ -53,7 +53,7 @@ export const appRouter = (app, express) => {
   // CORS
   app.use(
     cors({
-      origin: "https://medical-alazhar-front.vercel.app/",
+      origin: "https://medical-alazhar-front.vercel.app",
       optionsSuccessStatus: 200,
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization"],
