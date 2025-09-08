@@ -8,10 +8,12 @@ dotenv.config();
 
 // Configure Cloudinary
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dn6149nzx',
-    api_key: process.env.CLOUDINARY_API_KEY || '729586793226188',
-    api_secret: process.env.CLOUDINARY_API_SECRET || 'tTWSJV_s1lAqIBj2OEHle-I_0EQ'
+    cloud_name: 'dn6149nzx',
+    api_key: '729586793226188',
+    api_secret: 'tTWSJV_s1lAqIBj2OEHle-I_0EQ'
 });
+
+
 
 // Configure Cloudinary storage for multer
 const storage = new CloudinaryStorage({
@@ -362,14 +364,14 @@ export const generateUploadSignature = (params = {}) => {
             timestamp: timestamp,
             ...params
         },
-        process.env.CLOUDINARY_API_SECRET || 'tTWSJV_s1lAqIBj2OEHle-I_0EQ'
+        'tTWSJV_s1lAqIBj2OEHle-I_0EQ'
     );
 
     return {
         timestamp,
         signature,
-        api_key: process.env.CLOUDINARY_API_KEY || '729586793226188',
-        cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dn6149nzx'
+        api_key: '729586793226188',
+        cloud_name: 'dn6149nzx'
     };
 };
 
