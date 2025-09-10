@@ -20,6 +20,8 @@ import authRoutes from "./routes/auth.route.js";
 import coursesForAdminRoutes from "./routes/admin/admin.courses.route.js";
 // Messages
 import messagesRoutes from "./routes/Messages/Messages.router.js";
+// User
+import userRoutes from "./routes/User/User.router.js";
 
 export const appRouter = (app, express) => {
   // Define pathname and dirname in ES module scope
@@ -56,7 +58,7 @@ export const appRouter = (app, express) => {
   // CORS
   app.use(
     cors({
-      origin: "https://medical-alazhar-front.vercel.app",
+      origin: "http://localhost:5173",
       optionsSuccessStatus: 200,
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization"],
@@ -76,7 +78,7 @@ export const appRouter = (app, express) => {
   app.use("/api/v1/supervisor", supervisorRoutes);
   app.use("/api/v1/admin/courses", coursesForAdminRoutes);
   app.use("/api/v1/messages", messagesRoutes);
-
+  app.use("/api/v1/user", userRoutes);
   // Unmatched Route
   app.all("*", (req, res, next) => {
     return res

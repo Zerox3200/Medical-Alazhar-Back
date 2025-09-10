@@ -4,6 +4,7 @@ import { ErrorCatch } from "../utils/appError.js";
 import Admin from "../models/admin/admin.model.js";
 import Intern from "../models/intern/Intern.models.js";
 import Supervisor from "../models/supervisor/supervisor.models.js";
+import User from "../models/Users/Users.js";
 
 const isAuthenticated = ErrorCatch(async (req, res, next) => {
   const authHeader = req.headers["authorization"] || req.headers["Authorization"];
@@ -22,13 +23,14 @@ const isAuthenticated = ErrorCatch(async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET_KEY);
 
     // Await DB lookups
-    const [admin, intern, supervisor] = await Promise.all([
+    const [admin, intern, supervisor, user] = await Promise.all([
       Admin.findOne({ email: decoded.email }),
       Intern.findOne({ email: decoded.email }),
       Supervisor.findOne({ email: decoded.email }),
+      User.findOne({ email: decoded.email }),
     ]);
 
-    req.user = admin || intern || supervisor;
+    req.user = admin || intern || supervisor || user;
 
     if (!req.user) {
       return res.status(401).json({

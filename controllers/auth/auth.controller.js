@@ -9,6 +9,7 @@ import {
 } from "../../utils/helper.js";
 import httpStatusText from "../../utils/httpStatusText.js";
 import asyncWrapper from "../../middlewares/asyncWrapper.js";
+import User from "../../models/Users/Users.js";
 
 // Handle login common logic
 const handleUserLogin = async (user, password, Model, res) => {
@@ -54,18 +55,20 @@ const handleUserLogin = async (user, password, Model, res) => {
 
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
-  // Set refresh token in HTTP-only cookie
+
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     maxAge: 1000 * 60 * 60 * 24 * 7,
   });
+
+
   return res.status(200).json({
     status: httpStatusText.SUCCESS,
     message: "Welcome back",
     accessToken,
-    data: { user: { id: user._id, role: user.role } },
+    data: { user: { id: user._id, role: user.role || "user" } },
   });
 };
 
@@ -77,6 +80,7 @@ export const login = asyncWrapper(async (req, res, next) => {
     Admin.findOne({ email }),
     Intern.findOne({ email }),
     Supervisor.findOne({ email }),
+    User.findOne({ email }),
   ]);
 
   if (results.length > 0) {
@@ -115,6 +119,7 @@ export const changePassword = asyncWrapper(async (req, res, next) => {
     Admin.findOne({ _id: userId }),
     Intern.findOne({ _id: userId }),
     Supervisor.findOne({ _id: userId }),
+    User.findOne({ _id: userId }),
   ]);
 
   if (results.length > 0) {
