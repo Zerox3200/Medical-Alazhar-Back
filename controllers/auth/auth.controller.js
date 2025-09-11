@@ -9,19 +9,23 @@ import {
 } from "../../utils/helper.js";
 import httpStatusText from "../../utils/httpStatusText.js";
 import asyncWrapper from "../../middlewares/asyncWrapper.js";
-import User from "../../models/Users/Users.js";
+import User from "../../models/Users/Users.model.js";
 
 // Handle login common logic
 const handleUserLogin = async (user, password, Model, res) => {
-  if (user.isLocked) {
-    return res.status(403).json({
-      status: httpStatusText.FAIL,
-      code: 403,
-      message: "Account locked due to too many failed login attempts.",
-    });
-  }
+
+  // if (user.isLocked) {
+  //   return res.status(403).json({
+  //     status: httpStatusText.FAIL,
+  //     code: 403,
+  //     message: "Account locked due to too many failed login attempts.",
+  //   });
+  // }
+
 
   const matched = await bcrypt.compare(password, user.password);
+  console.log(password, user.password);
+
   if (!matched) {
     const updatedUser = await Model.findOneAndUpdate(
       { email: user.email },
@@ -31,6 +35,8 @@ const handleUserLogin = async (user, password, Model, res) => {
       },
       { new: true }
     );
+
+    console.log(updatedUser);
 
     if (updatedUser.loginAttempts >= 3) {
       return res.status(403).json({
@@ -179,11 +185,16 @@ export const changePassword = asyncWrapper(async (req, res, next) => {
 // Get User Data by token
 export const getUserData = asyncWrapper(async (req, res, next) => {
 
+  const NeededUser = {
+    ...req.user._doc,
+    role: req.user.role || "user",
+  }
+
   return res.status(200).json({
     status: httpStatusText.SUCCESS,
     code: 200,
     message: "User data fetched",
-    data: req.user,
+    data: NeededUser,
   });
 
 });

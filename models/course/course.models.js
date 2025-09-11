@@ -19,6 +19,24 @@ const courseSchema = new mongoose.Schema({
   published: { type: Boolean, default: false },
   paid: { type: Boolean, default: false },
   price: { type: Number, default: 0 },
+  NormalUserSubscriptions: [
+    {
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      subscriptionDate: { type: Date, default: Date.now },
+    }
+  ],
+  InternSubscriptions: [
+    {
+      internId: { type: mongoose.Schema.Types.ObjectId, ref: "Intern" },
+      subscriptionDate: { type: Date, default: Date.now },
+    }
+  ],
+  supervisorSubscriptions: [
+    {
+      supervisorId: { type: mongoose.Schema.Types.ObjectId, ref: "Supervisor" },
+      subscriptionDate: { type: Date, default: Date.now },
+    }
+  ],
 });
 
 const Course = mongoose.models.Course || mongoose.model("Course", courseSchema);

@@ -79,6 +79,7 @@ export const appRouter = (app, express) => {
   app.use("/api/v1/admin/courses", coursesForAdminRoutes);
   app.use("/api/v1/messages", messagesRoutes);
   app.use("/api/v1/user", userRoutes);
+
   // Unmatched Route
   app.all("*", (req, res, next) => {
     return res

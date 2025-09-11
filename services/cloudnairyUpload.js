@@ -133,7 +133,8 @@ export const uploadToFolderFlexible = (folderName) => {
             { name: 'file', maxCount: 1 },
             { name: 'photo', maxCount: 1 },
             { name: 'banner', maxCount: 1 },
-            { name: 'thumbnail', maxCount: 1 }
+            { name: 'thumbnail', maxCount: 1 },
+            { name: 'profileImage', maxCount: 1 }
         ]);
 
         fieldsMiddleware(req, res, async (err) => {

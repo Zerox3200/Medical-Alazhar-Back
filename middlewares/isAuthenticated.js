@@ -4,7 +4,7 @@ import { ErrorCatch } from "../utils/appError.js";
 import Admin from "../models/admin/admin.model.js";
 import Intern from "../models/intern/Intern.models.js";
 import Supervisor from "../models/supervisor/supervisor.models.js";
-import User from "../models/Users/Users.js";
+import User from "../models/Users/Users.model.js";
 
 const isAuthenticated = ErrorCatch(async (req, res, next) => {
   const authHeader = req.headers["authorization"] || req.headers["Authorization"];
