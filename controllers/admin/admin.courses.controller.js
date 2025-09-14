@@ -573,6 +573,14 @@ export const getCourseData = asyncWrapper(async (req, res, next) => {
         select: "title"
       }
     })
+    .populate({
+      path: "NormalUserSubscriptions",
+      select: "userId subscriptionDate",
+      populate: {
+        path: "userId",
+        select: "name email profileImage"
+      }
+    })
     .lean();
 
 

@@ -34,7 +34,15 @@ const userSchema = new mongoose.Schema({
     loginAttempts: {
         type: Number,
         default: 0,
-    }
+    },
+    accountFreezed: {
+        type: Boolean,
+        default: false,
+    },
+    accountFreezedReason: {
+        type: String,
+        default: null,
+    },
 });
 
 

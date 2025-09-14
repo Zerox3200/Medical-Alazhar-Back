@@ -7,6 +7,7 @@ import validate from "../../validation/validate.js";
 import { createNormalUserValidation } from "../../validation/User/User.validation.js";
 import isAuthenticated from "../../middlewares/isAuthenticated.js";
 import { handleUploadError, handleUploadSuccess, uploadToFolderFlexible } from "../../services/cloudnairyUpload.js";
+import userProgressRoutes from "./userProgress.route.js";
 
 
 const router = express.Router({ mergeParams: true });
@@ -33,5 +34,8 @@ router.delete("/delete-Account/:id", deleteUser);
 
 // get all users
 router.get("/get-all-users", getAllUsers);
+
+// User progress routes
+router.use("/progress", userProgressRoutes);
 
 export default router;

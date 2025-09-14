@@ -88,7 +88,14 @@ export const getUserProfile = async (req, res, next) => {
         });
     }
 
-    const getSubscriptions = await Course.find({ NormalUserSubscriptions: { $in: [user._id] } });
+    const getSubscriptions = await Course.find({
+        "NormalUserSubscriptions.userId": user._id
+    }, {
+        title: 1,
+        description: 1,
+        courseBanner: 1,
+        mentor: 1
+    });
 
     const NeededUser = {
         name: user.name,
